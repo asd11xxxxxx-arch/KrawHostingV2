@@ -111,16 +111,14 @@ def keep_alive():
 # ================================================================
 #   BOT CONFIGURATION (env-first, fallback for dev only)
 # ================================================================
-TOKEN          = os.environ.get("BOT_TOKEN")
-OWNER_ID       = int(os.environ.get("OWNER_ID", 0))
-ADMIN_ID       = int(os.environ.get("ADMIN_ID",  OWNER_ID))
+TOKEN          = os.environ.get("BOT_TOKEN", "8765038114:AAGO3lcbnA8dkiLr1PGMwtgBUytg3CIobbQ")
+OWNER_ID       = int(os.environ.get("OWNER_ID", 6736719959))
+ADMIN_ID       = int(os.environ.get("ADMIN_ID",  6736719959))
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", '@admin')
 
 if not TOKEN:
-    print("❌ BOT_TOKEN environment variable not set. Exiting.")
+    print("❌ BOT_TOKEN မသတ်မှတ်ရသေးပါ။ Exiting.")
     sys.exit(1)
-if OWNER_ID == 0:
-    print("⚠️ OWNER_ID not set via env — defaulting to 0 (owner checks may fail).")
 
 DATABASE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'devraw_bot.db')
 
