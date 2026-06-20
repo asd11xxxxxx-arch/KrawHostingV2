@@ -18,11 +18,17 @@ import string
 import logging
 import shutil
 import hashlib
-import resource
-import signal
+import functools
+from typing import Tuple, Optional
 from datetime import datetime, timedelta
 from threading import Thread
 from collections import defaultdict, deque
+
+try:
+    import resource
+    _HAS_RESOURCE = True
+except ImportError:
+    _HAS_RESOURCE = False
 
 # ========== AUTO INSTALL MISSING MODULES ==========
 required_modules = ['psutil', 'pyTelegramBotAPI', 'flask', 'requests']
@@ -35,7 +41,7 @@ for module in required_modules:
             subprocess.check_call(['pkg', 'install', 'python-psutil', '-y'])
         else:
             subprocess.check_call([sys.executable, "-m", "pip", "install", module,
-                                   "--break-system-packages"], check=True)
+                                   "--break-system-packages"])
 
 import psutil
 import telebot
@@ -86,7 +92,7 @@ SUSPICIOUS_CMD_PATTERNS = [
 # ================================================================
 #   FLASK KEEP-ALIVE (hardened)
 # ================================================================
-_flask_app = Flask('')
+_flask_app = Flask(__name__)
 
 @_flask_app.before_request
 def _flask_security():
@@ -124,8 +130,8 @@ DATABASE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'devraw
 
 DEFAULT_FORCE_CHANNEL_IDS = []
 DEFAULT_FORCE_GROUP_ID    = 0
-DEFAULT_CHANNEL_LINKS     = {}
-DEFAULT_GROUP_LINK        = ""
+DEFAULT_CHANNEL_LINKS     = {}   # type: dict
+DEFAULT_GROUP_LINK        = ""   # type: str
 
 BASE_DIR        = os.path.abspath(os.path.dirname(__file__))
 UPLOAD_BOTS_DIR = os.path.join(BASE_DIR, 'upload_bots')
@@ -406,7 +412,7 @@ def sanitize_filename(name: str) -> str:
         name = "uploaded_file"
     return name[:120]
 
-def validate_file_content(file_bytes: bytes, ext: str) -> tuple[bool, str]:
+def validate_file_content(file_bytes: bytes, ext: str) -> Tuple[bool, str]:
     """Return (ok, reason). Scans file for dangerous patterns."""
     try:
         text = file_bytes.decode('utf-8', errors='replace')
@@ -490,7 +496,7 @@ def secure_handler(is_file_upload=False):
                 return
 
             return fn(message_or_call, *args, **kwargs)
-        wrapper.__name__ = fn.__name__
+        functools.update_wrapper(wrapper, fn)
         return wrapper
     return decorator
 
@@ -794,7 +800,9 @@ def get_all_subscription_keys():
 #   PROCESS MANAGEMENT (with resource limits)
 # ================================================================
 def _set_child_limits():
-    """Called in child process to set resource limits."""
+    """Called in child process to set resource limits (Unix only)."""
+    if not _HAS_RESOURCE:
+        return
     try:
         mem_bytes = PROC_MAX_MEMORY_MB * 1024 * 1024
         resource.setrlimit(resource.RLIMIT_AS, (mem_bytes, mem_bytes))
